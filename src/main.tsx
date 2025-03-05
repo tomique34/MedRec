@@ -18,12 +18,24 @@ const isAuthenticated = () => {
   return localStorage.getItem('isAuthenticated') === 'true';
 };
 
-// Protected route component
-const ProtectedRoute = ({ element }: { element: React.ReactNode }) => {
+// Get user role from localStorage
+const getUserRole = () => {
+  return localStorage.getItem('userRole') || '';
+};
+
+// Protected route component with role-based access
+const ProtectedRoute = ({ element, requiredRole }: { element: React.ReactNode, requiredRole?: 'admin' | 'doctor' }) => {
   if (!isAuthenticated()) {
     // Redirect to login if not authenticated
     return <Navigate to="/login" replace />;
   }
+  
+  // If a specific role is required, check if the user has that role
+  if (requiredRole && getUserRole() !== requiredRole) {
+    // Redirect to login if user doesn't have the required role
+    return <Navigate to="/login" replace />;
+  }
+  
   return <>{element}</>;
 };
 
@@ -33,8 +45,8 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<ProtectedRoute element={<AdminDashboard />} />} />
-        <Route path="/doctor" element={<ProtectedRoute element={<DoctorDashboard />} />} />
+        <Route path="/admin" element={<ProtectedRoute element={<AdminDashboard />} requiredRole="admin" />} />
+        <Route path="/doctor" element={<ProtectedRoute element={<DoctorDashboard />} requiredRole="doctor" />} />
         <Route path="/legacy" element={<App />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Stethoscope, AlertCircle } from 'lucide-react';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { t, getCurrentLanguage } from '../lib/i18n';
+import { authenticateUser } from '../lib/auth';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -27,7 +28,7 @@ const LoginPage: React.FC = () => {
     };
   }, []);
 
-  // Mock authentication - in a real app, this would call an API
+  // Authentication using our secure auth system
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -37,16 +38,21 @@ const LoginPage: React.FC = () => {
       setError('Please enter both username and password');
       return;
     }
-
-    // Mock authentication logic
-    if (username === 'admin' && password === 'admin') {
-      // Admin login
+    
+    // Authenticate user with secure credentials
+    const authResult = authenticateUser(username, password);
+    
+    if (authResult.authenticated) {
+      // Store authentication state and user role
       localStorage.setItem('isAuthenticated', 'true');
-      navigate('/admin');
-    } else if (username === 'doctor' && password === 'doctor') {
-      // Doctor login
-      localStorage.setItem('isAuthenticated', 'true');
-      navigate('/doctor');
+      localStorage.setItem('userRole', authResult.role || '');
+      
+      // Navigate to the appropriate dashboard
+      if (authResult.role === 'admin') {
+        navigate('/admin');
+      } else if (authResult.role === 'doctor') {
+        navigate('/doctor');
+      }
     } else {
       setError('Invalid username or password');
     }
@@ -133,9 +139,7 @@ const LoginPage: React.FC = () => {
 
         <CardFooter className="flex flex-col">
           <div className="mt-2 text-center text-sm text-muted-foreground">
-            <p>For demo purposes:</p>
-            <p className="mt-1">Admin login: admin / admin</p>
-            <p>Doctor login: doctor / doctor</p>
+            <p>Please enter your credentials to access the system</p>
           </div>
         </CardFooter>
       </Card>
