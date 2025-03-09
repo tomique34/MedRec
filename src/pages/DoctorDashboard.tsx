@@ -10,6 +10,7 @@ import { formatTime } from '../lib/utils';
 import { t, getCurrentLanguage } from '../lib/i18n';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { DropdownMenu, DropdownMenuItem } from '../components/ui/dropdown-menu';
+import { getDoctorProfile } from '../lib/types';
 import { 
   Stethoscope, 
   Mic, 
@@ -23,7 +24,8 @@ import {
   AlertCircle,
   Clipboard,
   User,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 
 const DoctorDashboard: React.FC = () => {
@@ -54,6 +56,7 @@ const DoctorDashboard: React.FC = () => {
   const [transcriptionSuccess, setTranscriptionSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [showWebhookJson, setShowWebhookJson] = useState(false);
   
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -255,6 +258,45 @@ ${transcription}
     }
   };
 
+  // Generate webhook JSON payload
+  const generateWebhookPayload = () => {
+    const doctorProfile = getDoctorProfile();
+    
+    // Get patient information from the form
+    const patientNameInput = document.querySelector('#patient-name') as HTMLInputElement;
+    const healthInsuranceInput = document.querySelector('#health-insurance') as HTMLInputElement;
+    
+    const patientName = patientNameInput?.value || 'Unknown Patient';
+    const insuranceCompanyName = healthInsuranceInput?.value || 'Unknown Insurance';
+    
+    // Create audio URL for the recording
+    const audioUrl = audioURL || 'N/A';
+    
+    // Create the webhook payload according to the JSON schema
+    const webhookPayload = {
+      doctor: {
+        username: doctorProfile.username,
+        email: doctorProfile.email,
+        firstname: doctorProfile.firstName,
+        lastname: doctorProfile.lastName,
+        title: doctorProfile.title,
+        ambulance_name: doctorProfile.ambulanceName,
+        ambulance_address: doctorProfile.ambulanceAddress,
+        phone_number: doctorProfile.contactPhone
+      },
+      recording_details: {
+        date: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
+        patient_name: patientName,
+        insurance_company_name: insuranceCompanyName,
+        medical_procedure_code: "N/A",
+        audio_recording: audioUrl,
+        file_format: "wav"
+      }
+    };
+    
+    return webhookPayload;
+  };
+
   const transcribeRecording = async () => {
     if (!audioBlob) {
       setError('No recording to transcribe. Please record audio first.');
@@ -271,12 +313,28 @@ ${transcription}
         setTranscription("Patient reports experiencing headaches for the past two weeks, primarily in the morning. No previous history of migraines. Currently taking ibuprofen as needed for pain management. Blood pressure is within normal range at 120/80. Patient also mentions occasional dizziness when standing up quickly. Recommended further tests to rule out potential causes and scheduled a follow-up appointment in two weeks.");
         setIsTranscribing(false);
         setTranscriptionSuccess(true);
+        
+        // In a real app, this is where you would send the webhook payload
+        const webhookPayload = generateWebhookPayload();
+        console.log('Webhook payload:', webhookPayload);
+        
+        // Get the webhook URL from the doctor's profile
+        const doctorProfile = getDoctorProfile();
+        if (doctorProfile.webhookUrl) {
+          // In a real app, you would send the webhook payload to the webhook URL
+          console.log(`Sending webhook to ${doctorProfile.webhookUrl}`);
+        }
       }, 3000);
     } catch (error) {
       console.error('Error transcribing audio:', error);
       setError('Failed to transcribe the recording. Please try again.');
       setIsTranscribing(false);
     }
+  };
+  
+  // Show webhook JSON payload in a popup
+  const showWebhookPayload = () => {
+    setShowWebhookJson(true);
   };
 
   return (
@@ -383,24 +441,38 @@ ${transcription}
                         >
                           <Trash2 className="h-5 w-5" />
                         </Button>
-                        <Button 
-                          variant="default" 
-                          onClick={transcribeRecording}
-                          disabled={isTranscribing}
-                          className="rounded-full"
-                        >
-                          {isTranscribing ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              {t('doctor.transcribing')}
-                            </>
-                          ) : (
-                            <>
-                              <Send className="h-4 w-4 mr-2" />
-                              {t('doctor.transcribe')}
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="default" 
+                            onClick={transcribeRecording}
+                            disabled={isTranscribing}
+                            className="rounded-full"
+                          >
+                            {isTranscribing ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                {t('doctor.transcribing')}
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 mr-2" />
+                                {t('doctor.transcribe')}
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={showWebhookPayload}
+                            disabled={!audioURL}
+                            className="rounded-full"
+                            title="Preview webhook JSON"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                            </svg>
+                            Webhook JSON
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -597,6 +669,42 @@ ${transcription}
       <footer className="container mx-auto mt-8 py-4 text-center text-sm text-muted-foreground border-t">
         <p>MedRec Doctor Dashboard • v1.0 • © {new Date().getFullYear()}</p>
       </footer>
+      
+      {/* Webhook JSON Preview Modal */}
+      {showWebhookJson && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Webhook JSON Preview</h2>
+              <button 
+                onClick={() => setShowWebhookJson(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="bg-gray-100 p-4 rounded-md">
+              <pre className="text-sm overflow-x-auto whitespace-pre-wrap">
+                {JSON.stringify(generateWebhookPayload(), null, 2)}
+              </pre>
+            </div>
+            
+            <div className="mt-4 text-sm text-gray-600">
+              <p>This JSON payload would be sent to the webhook URL configured in your doctor profile when you click the "Transcribe" button.</p>
+            </div>
+            
+            <div className="flex justify-end mt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowWebhookJson(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
