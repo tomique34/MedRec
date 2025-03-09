@@ -14,6 +14,8 @@ export interface Translations {
     error: string;
     copy?: string;
     copied?: string;
+    firstName: string;
+    lastName: string;
   };
   auth: {
     signIn: string;
@@ -114,6 +116,8 @@ export const translations: Record<Language, Translations> = {
       error: 'Error',
       copy: 'Copy to Clipboard',
       copied: 'Copied to clipboard',
+      firstName: 'First Name',
+      lastName: 'Last Name',
     },
     auth: {
       signIn: 'Sign In',
@@ -212,6 +216,8 @@ export const translations: Record<Language, Translations> = {
       error: 'Chyba',
       copy: 'Kopírovať do schránky',
       copied: 'Skopírované do schránky',
+      firstName: 'Meno',
+      lastName: 'Priezvisko',
     },
     auth: {
       signIn: 'Prihlásiť sa',

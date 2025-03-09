@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { saveAs } from 'file-saver';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { PatientInfo } from '../components/patient-info';
 import { AudioWave } from '../components/audio-wave';
 import { formatTime } from '../lib/utils';
-import { t } from '../lib/i18n';
+import { t, getCurrentLanguage } from '../lib/i18n';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { DropdownMenu, DropdownMenuItem } from '../components/ui/dropdown-menu';
 import { 
   Stethoscope, 
   Mic, 
@@ -19,10 +21,26 @@ import {
   Loader2, 
   CheckCircle, 
   AlertCircle,
-  Clipboard
+  Clipboard,
+  User,
+  ChevronDown
 } from 'lucide-react';
 
 const DoctorDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  // Force re-render when language changes
+  const [language, setLanguage] = useState(getCurrentLanguage());
+  
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      setLanguage(getCurrentLanguage());
+    };
+    
+    window.addEventListener('languagechange', handleLanguageChange);
+    return () => {
+      window.removeEventListener('languagechange', handleLanguageChange);
+    };
+  }, []);
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
@@ -274,14 +292,34 @@ ${transcription}
                 {t('doctor.title')}
               </span>
             </div>
-            <Link 
-              to="/" 
-              className="flex items-center text-gray-600 hover:text-gray-900"
-              onClick={() => localStorage.removeItem('isAuthenticated')}
-            >
-              <LogOut className="h-5 w-5 mr-1" />
-              <span>{t('auth.signOut')}</span>
-            </Link>
+            <div className="flex items-center gap-4">
+              <LanguageSelector />
+              <DropdownMenu
+                trigger={
+                  <Button variant="ghost" className="flex items-center gap-1">
+                    <User className="h-5 w-5 mr-1" />
+                    <span>Doctor</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                }
+              >
+              <DropdownMenuItem 
+                icon={<User className="h-4 w-4" />}
+                onClick={() => navigate('/doctor/profile')}
+              >
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                icon={<LogOut className="h-4 w-4" />}
+                onClick={() => {
+                  localStorage.removeItem('isAuthenticated');
+                  navigate('/');
+                }}
+              >
+                {t('auth.signOut')}
+              </DropdownMenuItem>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>

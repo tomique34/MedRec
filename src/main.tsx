@@ -6,7 +6,9 @@ import HomePage from './pages/HomePage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import AdminDashboard from './pages/AdminDashboard.tsx';
 import DoctorDashboard from './pages/DoctorDashboard.tsx';
+import DoctorProfilePage from './pages/DoctorProfilePage.tsx';
 import { initializeLanguage } from './lib/i18n.ts';
+import { ThemeProvider } from './lib/theme.tsx';
 import './index.css';
 
 // Initialize language from localStorage or default to 'en'
@@ -41,15 +43,18 @@ const ProtectedRoute = ({ element, requiredRole }: { element: React.ReactNode, r
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<ProtectedRoute element={<AdminDashboard />} requiredRole="admin" />} />
-        <Route path="/doctor" element={<ProtectedRoute element={<DoctorDashboard />} requiredRole="doctor" />} />
-        <Route path="/legacy" element={<App />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin" element={<ProtectedRoute element={<AdminDashboard />} requiredRole="admin" />} />
+          <Route path="/doctor" element={<ProtectedRoute element={<DoctorDashboard />} requiredRole="doctor" />} />
+          <Route path="/doctor/profile" element={<ProtectedRoute element={<DoctorProfilePage />} requiredRole="doctor" />} />
+          <Route path="/legacy" element={<App />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   </StrictMode>
 );
